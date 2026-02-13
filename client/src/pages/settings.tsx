@@ -136,14 +136,14 @@ export default function SettingsPage() {
               </h2>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Anthropic Claude</span>
+                  <span className="text-sm text-muted-foreground">OpenAI</span>
                   <Badge variant={aiStatus?.connected ? "default" : "outline"} className={aiStatus?.connected ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0" : ""}>
                     {aiStatus?.connected ? "Connected" : "Not Connected"}
                   </Badge>
                 </div>
                 {!aiStatus?.connected && (
                   <p className="text-xs text-muted-foreground">
-                    Add ANTHROPIC_API_KEY as an environment secret to enable AI features.
+                    Add OPENAI_API_KEY as an environment secret to enable AI features.
                     All other features work without it.
                   </p>
                 )}

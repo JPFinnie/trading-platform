@@ -5,7 +5,7 @@ import { rm, readFile } from "fs/promises";
 // Server deps to bundle into the output for faster cold starts.
 // Only list packages actually used in the server code.
 const allowlist = [
-  "@anthropic-ai/sdk",
+  "openai",
   "connect-pg-simple",
   "date-fns",
   "drizzle-orm",

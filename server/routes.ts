@@ -11,9 +11,9 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-const DEFAULT_MODEL_STR = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL_STR = "o4-mini";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -151,14 +151,14 @@ export async function registerRoutes(
 
     await storage.addChatMessage({ role: "user", content: message.trim() });
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      const standbyMsg = "AI features are in standby mode. Please add your Anthropic API key in Settings to enable Strategy AI analysis.";
+    if (!process.env.OPENAI_API_KEY) {
+      const standbyMsg = "AI features are in standby mode. Please add your OpenAI API key in Settings to enable Strategy AI analysis.";
       const saved = await storage.addChatMessage({ role: "assistant", content: standbyMsg });
       return res.json(saved);
     }
 
     try {
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       let systemPrompt = `You are TSX Strategy Bot, a Canadian stock trading assistant specialized in TSX (Toronto Stock Exchange) stocks and CIBC Investor's Edge platform.
 
@@ -195,14 +195,16 @@ Provide a comprehensive portfolio analysis with specific actionable recommendati
         content: m.content,
       }));
 
-      const response = await anthropic.messages.create({
+      const response = await openai.chat.completions.create({
         model: DEFAULT_MODEL_STR,
         max_tokens: 2048,
-        system: systemPrompt,
-        messages: recentMessages,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...recentMessages,
+        ],
       });
 
-      let assistantContent = response.content[0].type === "text" ? response.content[0].text : "";
+      let assistantContent = response.choices[0]?.message?.content || "";
 
       const alertMatch = assistantContent.match(/---ALERTS---\n?([\s\S]*?)\n?---END_ALERTS---/);
       if (alertMatch) {
@@ -246,7 +248,7 @@ Provide a comprehensive portfolio analysis with specific actionable recommendati
 
   // AI Status
   app.get("/api/ai-status", async (_req, res) => {
-    res.json({ connected: !!process.env.ANTHROPIC_API_KEY });
+    res.json({ connected: !!process.env.OPENAI_API_KEY });
   });
 
   // Seed data endpoint (development only)
