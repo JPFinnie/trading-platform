@@ -26,4 +26,4 @@ ENV PORT=5000
 
 EXPOSE 5000
 
-CMD ["node", "dist/index.cjs"]
+CMD sh -c "npx drizzle-kit push || echo 'Migration skipped' && node dist/index.cjs"
