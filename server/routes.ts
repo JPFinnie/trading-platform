@@ -13,7 +13,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import OpenAI from "openai";
 
-const DEFAULT_MODEL_STR = "o4-mini";
+const DEFAULT_MODEL_STR = "gpt-4o-mini";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -218,7 +218,7 @@ Provide a comprehensive portfolio analysis with specific actionable recommendati
               message: a.message,
             });
           }
-        } catch {}
+        } catch { }
         assistantContent = assistantContent.replace(/---ALERTS---[\s\S]*?---END_ALERTS---/, "").trim();
       }
 
