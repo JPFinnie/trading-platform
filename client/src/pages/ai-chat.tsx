@@ -63,7 +63,7 @@ export default function AiChat() {
           <div className="flex items-center gap-2 mt-1">
             <div className={`w-2 h-2 rounded-full ${aiStatus?.connected ? "bg-emerald-500" : "bg-amber-500"}`} />
             <span className="text-sm text-muted-foreground">
-              {aiStatus?.connected ? "Claude connected" : "Standby — add API key in Settings"}
+              {aiStatus?.connected ? "OpenAI connected" : "Standby — add API key in Settings"}
             </span>
           </div>
         </div>
@@ -131,11 +131,10 @@ export default function AiChat() {
                     </div>
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-lg px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === "user"
+                <div className={`max-w-[80%] rounded-lg px-4 py-3 text-sm leading-relaxed ${msg.role === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted"
-                }`}>
+                  }`}>
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                 </div>
                 {msg.role === "user" && (
