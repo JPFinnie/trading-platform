@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+server/public
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Replit local state
+.local/
+.cache/
+generated-icon.png
+
+# Vite temp
+vite.config.ts.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archives
+*.tar.gz
+
+# TypeScript
+*.tsbuildinfo
