@@ -18,6 +18,8 @@ COPY package.json package-lock.json ./
 RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/shared ./shared
 
 ENV NODE_ENV=production
 ENV PORT=5000
