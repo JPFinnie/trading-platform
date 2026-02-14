@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { PortfolioItem } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
+import { Plus, Trash2, Briefcase, TrendingUp, TrendingDown, DollarSign, PieChart, ArrowRight } from "lucide-react";
 import {
   PieChart as RechartsPie,
   Pie,
@@ -45,6 +46,69 @@ const sectorBgColors: Record<string, string> = {
   Healthcare: "bg-pink-500", Utilities: "bg-lime-500", Consumer: "bg-rose-500",
   "Real Estate": "bg-cyan-500", Other: "bg-gray-400",
 };
+
+function PortfolioItemCard({ item, deleteMutation }: { item: PortfolioItem, deleteMutation: any }) {
+  // Fetch live price
+  const { data: snapshot } = useQuery<any>({
+    queryKey: ["/api/market/snapshot", item.ticker],
+    queryFn: async () => {
+      const res = await fetch(`/api/market/snapshot/${item.ticker}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  // Use live price if available, otherwise fallback to stored price
+  const currentPrice = snapshot?.ticker?.day?.c || snapshot?.ticker?.lastTrade?.p || item.currentPrice;
+  const value = item.shares * currentPrice;
+  const cost = item.shares * item.avgCost;
+  const pnl = value - cost;
+  const ret = cost > 0 ? (pnl / cost) * 100 : 0;
+
+  return (
+    <Card data-testid={`card-portfolio-${item.id}`} className="group transition-all hover:shadow-md">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-8 rounded-full ${sectorBgColors[item.sector || "Other"] || "bg-gray-400"}`} />
+            <div>
+              <Link href={`/stock/${item.ticker}`} className="hover:underline">
+                <div className="font-semibold flex items-center gap-1" data-testid={`text-port-ticker-${item.id}`}>
+                  {item.ticker}
+                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                </div>
+              </Link>
+              <div className="text-xs text-muted-foreground">{item.sector} &middot; {item.shares} shares</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Avg Cost</div>
+              <div className="text-sm font-medium tabular-nums">${item.avgCost.toFixed(2)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Current</div>
+              <div className="text-sm font-medium tabular-nums">
+                ${currentPrice.toFixed(2)}
+                {snapshot && <span className="ml-1 text-[10px] text-muted-foreground">(Live)</span>}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">P&L</div>
+              <div className={`text-sm font-medium tabular-nums ${pnl >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} ({ret >= 0 ? "+" : ""}{ret.toFixed(1)}%)
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)} data-testid={`button-delete-port-${item.id}`}>
+              <Trash2 className="w-4 h-4 text-muted-foreground" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Portfolio() {
   const { toast } = useToast();
@@ -383,46 +447,13 @@ export default function Portfolio() {
 
               <div className="space-y-3">
                 <h2 className="text-sm font-medium text-muted-foreground">Holdings</h2>
-                {portfolio.map((item) => {
-                  const value = item.shares * item.currentPrice;
-                  const cost = item.shares * item.avgCost;
-                  const pnl = value - cost;
-                  const ret = cost > 0 ? (pnl / cost) * 100 : 0;
-                  return (
-                    <Card key={item.id} data-testid={`card-portfolio-${item.id}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-2 h-8 rounded-full ${sectorBgColors[item.sector || "Other"] || "bg-gray-400"}`} />
-                            <div>
-                              <div className="font-semibold" data-testid={`text-port-ticker-${item.id}`}>{item.ticker}</div>
-                              <div className="text-xs text-muted-foreground">{item.sector} &middot; {item.shares} shares</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-6 flex-wrap">
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">Avg Cost</div>
-                              <div className="text-sm font-medium tabular-nums">${item.avgCost.toFixed(2)}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">Current</div>
-                              <div className="text-sm font-medium tabular-nums">${item.currentPrice.toFixed(2)}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">P&L</div>
-                              <div className={`text-sm font-medium tabular-nums ${pnl >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-                                {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} ({ret >= 0 ? "+" : ""}{ret.toFixed(1)}%)
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)} data-testid={`button-delete-port-${item.id}`}>
-                              <Trash2 className="w-4 h-4 text-muted-foreground" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {portfolio.map((item) => (
+                  <PortfolioItemCard
+                    key={item.id}
+                    item={item}
+                    deleteMutation={deleteMutation}
+                  />
+                ))}
               </div>
             </>
           )}

@@ -163,7 +163,7 @@ export default function SettingsPage() {
                     <Building2 className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">Broker</span>
                   </div>
-                  <span className="text-sm font-medium" data-testid="text-broker">CIBC Investor's Edge</span>
+                  <span className="text-sm font-medium" data-testid="text-broker">FinX</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

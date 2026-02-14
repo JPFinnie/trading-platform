@@ -15,6 +15,8 @@ import AiChat from "@/pages/ai-chat";
 import Alerts from "@/pages/alerts";
 import SettingsPage from "@/pages/settings";
 
+import StockDetail from "@/pages/stock-detail";
+
 function Router() {
   return (
     <Switch>
@@ -24,6 +26,7 @@ function Router() {
       <Route path="/ai" component={AiChat} />
       <Route path="/alerts" component={Alerts} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/stock/:ticker" component={StockDetail} />
       <Route component={NotFound} />
     </Switch>
   );

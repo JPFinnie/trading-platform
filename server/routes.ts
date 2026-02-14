@@ -12,6 +12,7 @@ import {
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import OpenAI from "openai";
+import { getSnapshot, getAggregates, getPreviousClose } from "./massive";
 
 const DEFAULT_MODEL_STR = "gpt-4o-mini";
 
@@ -160,9 +161,9 @@ export async function registerRoutes(
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      let systemPrompt = `You are TSX Strategy Bot, a Canadian stock trading assistant specialized in TSX (Toronto Stock Exchange) stocks and CIBC Investor's Edge platform.
+      let systemPrompt = `You are FinX Strategy Bot, a Canadian stock trading assistant specialized in TSX (Toronto Stock Exchange) stocks.
 
-You provide analysis on Canadian equities, trading strategies, and portfolio management advice. All prices are in CAD. Commission is $6.95 per trade on CIBC Investor's Edge.
+You provide analysis on Canadian equities, trading strategies, and portfolio management advice. All prices are in CAD. Commission is $6.95 per trade.
 
 Keep responses concise but actionable. When making recommendations, include specific entry, stop-loss, and take-profit levels where appropriate.
 
@@ -228,6 +229,58 @@ Provide a comprehensive portfolio analysis with specific actionable recommendati
       const errMsg = `AI Error: ${error.message || "Failed to get response from Claude."}`;
       const saved = await storage.addChatMessage({ role: "assistant", content: errMsg });
       res.json(saved);
+    }
+  });
+
+  // ─── Market Data (Massive API proxy) ───
+
+  app.get("/api/market/snapshot/:ticker", async (req, res) => {
+    if (!process.env.MASSIVE_API_KEY) {
+      return res.status(503).json({ message: "Market data unavailable — MASSIVE_API_KEY not configured" });
+    }
+    try {
+      const data = await getSnapshot(req.params.ticker);
+      res.json(data);
+    } catch (err: any) {
+      console.error("Massive snapshot error:", err.message);
+      res.status(502).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/market/chart/:ticker", async (req, res) => {
+    if (!process.env.MASSIVE_API_KEY) {
+      return res.status(503).json({ message: "Market data unavailable — MASSIVE_API_KEY not configured" });
+    }
+    try {
+      const { multiplier = "1", timespan = "day", from, to } = req.query;
+      if (!from || !to) {
+        return res.status(400).json({ message: "Query params 'from' and 'to' are required (YYYY-MM-DD)" });
+      }
+      const data = await getAggregates(
+        req.params.ticker,
+        parseInt(multiplier as string),
+        timespan as string,
+        from as string,
+        to as string,
+        { adjusted: true, sort: "asc" }
+      );
+      res.json(data);
+    } catch (err: any) {
+      console.error("Massive chart error:", err.message);
+      res.status(502).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/market/previous/:ticker", async (req, res) => {
+    if (!process.env.MASSIVE_API_KEY) {
+      return res.status(503).json({ message: "Market data unavailable — MASSIVE_API_KEY not configured" });
+    }
+    try {
+      const data = await getPreviousClose(req.params.ticker);
+      res.json(data);
+    } catch (err: any) {
+      console.error("Massive previous-close error:", err.message);
+      res.status(502).json({ message: err.message });
     }
   });
 

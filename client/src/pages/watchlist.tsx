@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { WatchlistItem, Settings } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calculator, Target, ShieldAlert, TrendingUp, Eye } from "lucide-react";
+import { Plus, Trash2, Calculator, Target, ShieldAlert, TrendingUp, Eye, ArrowRight } from "lucide-react";
 
 const signalColors: Record<string, string> = {
   BUY: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
@@ -19,6 +20,94 @@ const signalColors: Record<string, string> = {
   HOLD: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   WATCH: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
 };
+
+function WatchlistCard({ item, setCalcTicker, deleteMutation }: { item: WatchlistItem, setCalcTicker: (i: WatchlistItem) => void, deleteMutation: any }) {
+  // Fetch live price
+  const { data: snapshot } = useQuery<any>({
+    queryKey: ["/api/market/snapshot", item.ticker],
+    queryFn: async () => {
+      const res = await fetch(`/api/market/snapshot/${item.ticker}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const livePrice = snapshot?.ticker?.day?.c || snapshot?.ticker?.lastTrade?.p;
+  const change = snapshot?.ticker?.todaysChangePerc;
+
+  return (
+    <Card className="group transition-all hover:shadow-md" data-testid={`card-watchlist-${item.id}`}>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 p-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href={`/stock/${item.ticker}`} className="hover:underline">
+            <span className="font-semibold text-base tracking-tight flex items-center gap-1" data-testid={`text-ticker-${item.id}`}>
+              {item.ticker}
+              <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+            </span>
+          </Link>
+          <Badge className={`${signalColors[item.signal] || ""} border-0 text-[11px]`} data-testid={`badge-signal-${item.id}`}>
+            {item.signal}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setCalcTicker(item)} data-testid={`button-calc-${item.id}`}>
+            <Calculator className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)} data-testid={`button-delete-${item.id}`}>
+            <Trash2 className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0 space-y-3">
+        {/* Live Price Row */}
+        {livePrice && (
+          <div className="flex items-center justify-between text-sm pb-2 border-b">
+            <span className="text-muted-foreground">Price</span>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">${livePrice.toFixed(2)}</span>
+              {change !== undefined && (
+                <span className={`text-xs ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                  {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Target className="w-3 h-3" />
+              Entry
+            </div>
+            <div className="text-sm font-medium tabular-nums">${item.entryTarget.toFixed(2)}</div>
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <ShieldAlert className="w-3 h-3" />
+              Stop
+            </div>
+            <div className="text-sm font-medium tabular-nums text-red-500 dark:text-red-400">${item.stopLoss.toFixed(2)}</div>
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <TrendingUp className="w-3 h-3" />
+              Target
+            </div>
+            <div className="text-sm font-medium tabular-nums text-emerald-500 dark:text-emerald-400">${item.takeProfit.toFixed(2)}</div>
+          </div>
+        </div>
+        {item.sector && item.sector !== "Other" && (
+          <div className="text-xs text-muted-foreground">{item.sector}</div>
+        )}
+        {item.notes && (
+          <p className="text-xs text-muted-foreground/80 line-clamp-2">{item.notes}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Watchlist() {
   const { toast } = useToast();
@@ -169,55 +258,12 @@ export default function Watchlist() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {watchlist.map((item) => (
-            <Card key={item.id} className="group" data-testid={`card-watchlist-${item.id}`}>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 p-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-base tracking-tight" data-testid={`text-ticker-${item.id}`}>{item.ticker}</span>
-                  <Badge className={`${signalColors[item.signal] || ""} border-0 text-[11px]`} data-testid={`badge-signal-${item.id}`}>
-                    {item.signal}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => setCalcTicker(item)} data-testid={`button-calc-${item.id}`}>
-                    <Calculator className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)} data-testid={`button-delete-${item.id}`}>
-                    <Trash2 className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Target className="w-3 h-3" />
-                      Entry
-                    </div>
-                    <div className="text-sm font-medium tabular-nums">${item.entryTarget.toFixed(2)}</div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <ShieldAlert className="w-3 h-3" />
-                      Stop
-                    </div>
-                    <div className="text-sm font-medium tabular-nums text-red-500 dark:text-red-400">${item.stopLoss.toFixed(2)}</div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <TrendingUp className="w-3 h-3" />
-                      Target
-                    </div>
-                    <div className="text-sm font-medium tabular-nums text-emerald-500 dark:text-emerald-400">${item.takeProfit.toFixed(2)}</div>
-                  </div>
-                </div>
-                {item.sector && item.sector !== "Other" && (
-                  <div className="text-xs text-muted-foreground">{item.sector}</div>
-                )}
-                {item.notes && (
-                  <p className="text-xs text-muted-foreground/80 line-clamp-2">{item.notes}</p>
-                )}
-              </CardContent>
-            </Card>
+            <WatchlistCard
+              key={item.id}
+              item={item}
+              setCalcTicker={setCalcTicker}
+              deleteMutation={deleteMutation}
+            />
           ))}
         </div>
       )}

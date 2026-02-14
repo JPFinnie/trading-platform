@@ -13,6 +13,7 @@ import type { Alert } from "@shared/schema";
 
 const navItems = [
   { title: "Watchlist", url: "/", icon: Eye },
+  { title: "Markets", url: "/stock/AAPL", icon: TrendingUp },
   { title: "Portfolio", url: "/portfolio", icon: Briefcase },
   { title: "Trade Journal", url: "/trades", icon: BookOpen },
   { title: "Strategy AI", url: "/ai", icon: Brain },
@@ -37,8 +38,8 @@ export function AppSidebar() {
             <TrendingUp className="w-4 h-4 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold tracking-tight" data-testid="text-app-title">TSX Strategy Bot</span>
-            <span className="text-xs text-muted-foreground">CIBC Investor's Edge</span>
+            <span className="text-sm font-semibold tracking-tight" data-testid="text-app-title">FinX</span>
+            <span className="text-xs text-muted-foreground">Smart Trading Dashboard</span>
           </div>
         </div>
       </SidebarHeader>
