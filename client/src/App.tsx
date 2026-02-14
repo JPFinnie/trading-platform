@@ -17,10 +17,13 @@ import SettingsPage from "@/pages/settings";
 
 import StockDetail from "@/pages/stock-detail";
 
+import Markets from "@/pages/markets";
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Watchlist} />
+      <Route path="/markets" component={Markets} />
       <Route path="/portfolio" component={Portfolio} />
       <Route path="/trades" component={Trades} />
       <Route path="/ai" component={AiChat} />

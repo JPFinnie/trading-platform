@@ -13,7 +13,7 @@ import type { Alert } from "@shared/schema";
 
 const navItems = [
   { title: "Watchlist", url: "/", icon: Eye },
-  { title: "Markets", url: "/stock/AAPL", icon: TrendingUp },
+  { title: "Markets", url: "/markets", icon: TrendingUp },
   { title: "Portfolio", url: "/portfolio", icon: Briefcase },
   { title: "Trade Journal", url: "/trades", icon: BookOpen },
   { title: "Strategy AI", url: "/ai", icon: Brain },

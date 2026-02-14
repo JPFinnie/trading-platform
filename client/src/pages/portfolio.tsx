@@ -22,7 +22,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  ResponsiveContainer,
   Legend,
 } from "recharts";
 
@@ -47,6 +46,59 @@ const sectorBgColors: Record<string, string> = {
   "Real Estate": "bg-cyan-500", Other: "bg-gray-400",
 };
 
+import {
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+} from "recharts";
+
+function Sparkline({ ticker, color }: { ticker: string, color: string }) {
+  const { data: chartData } = useQuery({
+    queryKey: ["/api/market/chart", ticker, "1", "day"],
+    queryFn: async () => {
+      // Get last 30 days
+      const to = new Date().toISOString().split('T')[0];
+      const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const res = await fetch(`/api/market/chart/${ticker}?multiplier=1&timespan=day&from=${from}&to=${to}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results?.map((r: any) => ({
+        value: r.c,
+        time: r.t,
+      })) || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (!chartData || chartData.length === 0) {
+    return <div className="h-[40px] w-[100px] bg-muted/10 animate-pulse rounded" />;
+  }
+
+  return (
+    <div className="h-[40px] w-[100px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData}>
+          <defs>
+            <linearGradient id={`gradient-port-${ticker}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={color}
+            fill={`url(#gradient-port-${ticker})`}
+            strokeWidth={2}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function PortfolioItemCard({ item, deleteMutation }: { item: PortfolioItem, deleteMutation: any }) {
   // Fetch live price
   const { data: snapshot } = useQuery<any>({
@@ -65,6 +117,7 @@ function PortfolioItemCard({ item, deleteMutation }: { item: PortfolioItem, dele
   const cost = item.shares * item.avgCost;
   const pnl = value - cost;
   const ret = cost > 0 ? (pnl / cost) * 100 : 0;
+  const isPositive = pnl >= 0;
 
   return (
     <Card data-testid={`card-portfolio-${item.id}`} className="group transition-all hover:shadow-md">
@@ -82,6 +135,11 @@ function PortfolioItemCard({ item, deleteMutation }: { item: PortfolioItem, dele
               <div className="text-xs text-muted-foreground">{item.sector} &middot; {item.shares} shares</div>
             </div>
           </div>
+
+          <div className="flex-1 flex justify-center hidden sm:flex">
+            <Sparkline ticker={item.ticker} color={isPositive ? "#10b981" : "#ef4444"} />
+          </div>
+
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-right">
               <div className="text-xs text-muted-foreground">Avg Cost</div>
